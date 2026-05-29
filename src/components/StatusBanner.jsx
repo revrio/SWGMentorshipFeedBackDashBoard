@@ -1,3 +1,5 @@
+import React from "react";
+
 const tones = {
   blue: "border-sky-200 bg-sky-50 text-sky-900",
   green: "border-emerald-200 bg-emerald-50 text-emerald-900",

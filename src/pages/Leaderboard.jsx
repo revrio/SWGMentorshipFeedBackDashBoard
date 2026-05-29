@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RefreshCw, Trophy } from "lucide-react";
 import Button from "../components/Button";
 import LeaderboardTable from "../components/LeaderboardTable";
 import PageShell from "../components/PageShell";
 import StatusBanner from "../components/StatusBanner";
-import { supabase } from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const views = {
   default: "default",
@@ -53,6 +53,16 @@ export default function Leaderboard() {
     setError(null);
 
     try {
+      if (!isSupabaseConfigured) {
+        setSession(null);
+        setCycle(null);
+        setRows([]);
+        setError(
+          "Supabase is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to load snapshots.",
+        );
+        return;
+      }
+
       const currentSession = await getCurrentSessionRow();
       setSession(currentSession);
 
@@ -105,9 +115,9 @@ export default function Leaderboard() {
         <>
           <div className="inline-flex rounded-md border border-swg-line bg-white p-1 shadow-sm">
             <button
-              className={`swg-focus min-h-9 rounded px-3 text-sm font-semibold ${
+              className={`swg-focus min-h-9 rounded-lg px-4 text-sm font-semibold ${
                 activeView === views.default
-                  ? "bg-swg-blue text-white"
+                  ? "bg-swg-aqua text-swg-blue shadow-sm"
                   : "text-slate-600 hover:text-swg-navy"
               }`}
               onClick={() => setActiveView(views.default)}
@@ -116,9 +126,9 @@ export default function Leaderboard() {
               Default View
             </button>
             <button
-              className={`swg-focus min-h-9 rounded px-3 text-sm font-semibold ${
+              className={`swg-focus min-h-9 rounded-lg px-4 text-sm font-semibold ${
                 activeView === views.overall
-                  ? "bg-swg-blue text-white"
+                  ? "bg-swg-aqua text-swg-blue shadow-sm"
                   : "text-slate-600 hover:text-swg-navy"
               }`}
               onClick={() => setActiveView(views.overall)}
@@ -136,12 +146,12 @@ export default function Leaderboard() {
           </Button>
         </>
       }
-      eyebrow="Frozen Rankings"
+      eyebrow="Mentorship Leader"
       showSignOut={false}
       title="Mentor Leaderboard"
     >
       <div className="mb-5 grid gap-4 md:grid-cols-3">
-        <div className="rounded-md border border-swg-line bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-swg-line bg-white p-4 shadow-soft">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
             Session
           </p>
@@ -149,7 +159,7 @@ export default function Leaderboard() {
             {session?.session_name ?? "Not configured"}
           </p>
         </div>
-        <div className="rounded-md border border-swg-line bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-swg-line bg-white p-4 shadow-soft">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
             Snapshot
           </p>
@@ -159,7 +169,7 @@ export default function Leaderboard() {
               : cycle?.cycle_name ?? "Latest closed cycle"}
           </p>
         </div>
-        <div className="rounded-md border border-swg-line bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-swg-line bg-white p-4 shadow-soft">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
             Score Basis
           </p>
@@ -184,7 +194,7 @@ export default function Leaderboard() {
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-md border border-swg-line bg-white p-6 text-sm text-slate-600 shadow-corporate">
+        <div className="rounded-2xl border border-swg-line bg-white p-6 text-sm text-slate-600 shadow-corporate">
           Loading leaderboard snapshots...
         </div>
       ) : (

@@ -15,7 +15,7 @@ This project is built to be handed off and merged into a larger React codebase l
 ## Routes
 
 - `/mentorship`  
-  OTP email login screen.
+  Entry route. Logged-out users see the email login screen. Signed-in and authorized users are redirected to `/mentorship/dashboard`.
 
 - `/mentorship/dashboard`  
   Protected mentee dashboard for feedback submission.
@@ -23,21 +23,41 @@ This project is built to be handed off and merged into a larger React codebase l
 - `/mentorship/leaderboard`  
   Leaderboard view reading frozen score snapshots from Supabase.
 
+## Authentication Behavior
+
+- Existing users sign in with email OTP/magic link.
+- The sign-in flow checks `public.users` first, so only `mentee` and `admin` roles can enter the portal.
+- The login page also includes a visible Sign up mode for local testing.
+- Test sign-up creates a Supabase Auth user and then attempts to create a matching `public.users` row with role `mentee`.
+- A newly signed-up user still needs a linked `public.mentees` row before the feedback dashboard can show assigned mentor/cycle data.
+- The Leaderboard item on the login sidebar links to `/mentorship/leaderboard`.
+
+## Current UI Direction
+
+The app uses a full-page internal dashboard layout, not a centered mockup frame.
+
+- Desktop layout has a left SWG sidebar.
+- Main content fills the remaining browser width.
+- The signed-in navigation contains only Dashboard and Leaderboard.
+- There is no Home item in the signed-in sidebar because `/mentorship` is the login/entry route.
+- The SWG logo in the signed-in shell links to `/mentorship/dashboard`.
+- The visual style uses soft grey backgrounds, white panels, teal-blue accents, compact cards, and table/chip styling inspired by the SWG dashboard reference.
+
 ## Folder Structure
 
 ```text
 src/
- ┣ components/
- ┣ pages/
- ┃ ┣ Login.jsx
- ┃ ┣ Dashboard.jsx
- ┃ ┗ Leaderboard.jsx
- ┣ lib/
- ┃ ┣ supabase.js
- ┃ ┗ scoringUtils.js
- ┣ App.jsx
- ┣ main.jsx
- ┗ styles.css
+  components/
+  pages/
+    Login.jsx
+    Dashboard.jsx
+    Leaderboard.jsx
+  lib/
+    supabase.js
+    scoringUtils.js
+  App.jsx
+  main.jsx
+  styles.css
 ```
 
 ## Supabase Schema
@@ -130,8 +150,10 @@ Copy `.env.example` to `.env` and fill in Supabase credentials:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-public-anon-key
+VITE_SUPABASE_ANON_KEY=your-public-or-publishable-key
 ```
+
+Use a Supabase publishable key or legacy anon public key. Never use the `service_role` or secret key in frontend `.env`.
 
 ## Remaining Real-World Setup
 
@@ -164,6 +186,7 @@ Completed locally:
 
 - Dependencies installed with `npm.cmd install`.
 - Production build passed with `npm.cmd run build`.
+- `/mentorship` redirects signed-in authorized users to `/mentorship/dashboard`.
 - Built preview responded successfully for:
   - `/mentorship`
   - `/mentorship/leaderboard`
@@ -175,6 +198,7 @@ Note: `npm audit` reported 2 moderate findings from installed packages. No force
 Before deploying, configure Row Level Security policies so the frontend can safely:
 
 - Read allowed `users` rows for login eligibility.
+- Insert a `users` row for local test sign-up, if that testing path remains enabled.
 - Read the authenticated mentee profile.
 - Read active `feedback_cycles`.
 - Read/write permitted `feedbacks`.

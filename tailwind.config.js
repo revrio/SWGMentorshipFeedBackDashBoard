@@ -5,19 +5,22 @@ export default {
     extend: {
       colors: {
         swg: {
-          navy: "#0f2d52",
-          blue: "#155e9f",
-          sky: "#0ea5e9",
-          ink: "#172033",
-          line: "#d7e2ef",
-          mist: "#f4f8fc",
+          navy: "#16303f",
+          blue: "#236f86",
+          teal: "#2ba6ad",
+          aqua: "#d9f3f2",
+          sky: "#7fcfd2",
+          ink: "#243746",
+          line: "#dfe8ee",
+          mist: "#f5f8fb",
         },
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        corporate: "0 14px 35px rgba(15, 45, 82, 0.08)",
+        corporate: "0 16px 35px rgba(36, 55, 70, 0.08)",
+        soft: "0 10px 26px rgba(36, 55, 70, 0.06)",
       },
     },
   },

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock, Send, ShieldAlert } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Clock, Send, ShieldAlert, UserRound } from "lucide-react";
 import Button from "../components/Button";
 import PageShell from "../components/PageShell";
 import RatingInput from "../components/RatingInput";
@@ -25,6 +25,8 @@ export default function Dashboard() {
     () => ratings.q1_rating && ratings.q2_rating && state.cycle && state.mentee,
     [ratings, state.cycle, state.mentee],
   );
+  const completedCount = Object.values(ratings).filter(Boolean).length;
+  const progressPercent = (completedCount / 2) * 100;
 
   useEffect(() => {
     loadDashboard();
@@ -147,7 +149,12 @@ export default function Dashboard() {
   }
 
   return (
-    <PageShell eyebrow="Mentee Portal" title="Feedback Dashboard">
+    <PageShell
+      eyebrow="Mentorship Feedback"
+      title={
+        state.mentee?.name ? `Welcome back, ${state.mentee.name}!` : "Mentorship Dashboard"
+      }
+    >
       {state.isLoading ? (
         <div className="rounded-md border border-swg-line bg-white p-6 text-sm text-slate-600 shadow-corporate">
           Loading your mentorship dashboard...
@@ -168,23 +175,44 @@ export default function Dashboard() {
       ) : null}
 
       {!state.isLoading && state.mentee ? (
-        <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
-          <aside className="rounded-md border border-swg-line bg-white p-5 shadow-corporate">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Assigned Mentor
-            </p>
-            <h2 className="mt-3 text-xl font-bold text-swg-navy">
-              {state.mentee.mentors?.name ?? "Mentor"}
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              {state.mentee.mentors?.roll_number ?? "Roll number unavailable"}
-            </p>
-            <div className="mt-5 border-t border-swg-line pt-5">
+        <div className="grid gap-5 xl:grid-cols-[330px_1fr]">
+          <aside className="rounded-2xl border border-swg-line bg-white p-5 shadow-corporate">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-swg-aqua text-swg-blue">
+                <UserRound className="h-9 w-9" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                  Mentor
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-swg-navy">
+                  {state.mentee.mentors?.name ?? "Mentor"}
+                </h2>
+                <p className="text-sm text-slate-500">
+                  {state.mentee.mentors?.roll_number ?? "Roll number unavailable"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl bg-swg-mist p-4">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                Mentee
+                Mentee Code
               </p>
-              <p className="mt-2 font-semibold text-swg-navy">{state.mentee.name}</p>
-              <p className="text-sm text-slate-600">{state.mentee.roll_number}</p>
+              <p className="mt-2 font-semibold text-swg-navy">{state.mentee.roll_number}</p>
+              <p className="text-sm text-slate-500">{state.mentee.name}</p>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-swg-line p-4">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="font-semibold text-swg-navy">Progress</span>
+                <span className="font-bold text-swg-teal">{completedCount}/2</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-swg-teal transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
           </aside>
 
@@ -207,24 +235,34 @@ export default function Dashboard() {
 
             {state.cycle && !state.existingFeedback ? (
               <form
-                className="rounded-md border border-swg-line bg-white p-5 shadow-corporate"
+                className="rounded-2xl border border-swg-line bg-white p-5 shadow-corporate"
                 onSubmit={handleSubmit}
               >
                 <div className="mb-5 border-b border-swg-line pb-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-swg-blue">
-                    Active Cycle
-                  </p>
-                  <h2 className="mt-2 text-xl font-bold text-swg-navy">
-                    {state.cycle.cycle_name}
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Rate your mentoring experience for this cycle. Each
-                    response can be submitted once.
-                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-swg-teal">
+                        Active Cycle
+                      </p>
+                      <h2 className="mt-2 text-xl font-bold text-swg-navy">
+                        {state.cycle.cycle_name}
+                      </h2>
+                    </div>
+                    <span className="rounded-full bg-swg-aqua px-3 py-1 text-sm font-bold text-swg-blue">
+                      {completedCount} of 2 questions completed
+                    </span>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-swg-teal transition-all"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-4">
                   <RatingInput
+                    index="1"
                     label="How helpful was your mentor's academic guidance?"
                     name="q1_rating"
                     onChange={(value) =>
@@ -236,6 +274,7 @@ export default function Dashboard() {
                     value={ratings.q1_rating}
                   />
                   <RatingInput
+                    index="2"
                     label="How responsive and approachable was your mentor?"
                     name="q2_rating"
                     onChange={(value) =>
@@ -256,6 +295,7 @@ export default function Dashboard() {
 
                 <div className="mt-6 flex justify-end">
                   <Button
+                    className="min-w-52"
                     disabled={!canSubmit}
                     icon={Send}
                     isLoading={isSubmitting}
