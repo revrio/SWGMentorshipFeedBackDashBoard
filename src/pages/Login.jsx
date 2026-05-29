@@ -3,7 +3,13 @@ import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import StatusBanner from "../components/StatusBanner";
-import { getCurrentAppUser, sendLoginOtp, supabase, verifyLoginOtp } from "../lib/supabase";
+import {
+  getCurrentAppUser,
+  isSupabaseConfigured,
+  sendLoginOtp,
+  supabase,
+  verifyLoginOtp,
+} from "../lib/supabase";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -122,6 +128,17 @@ export default function Login() {
               : `We sent the code to ${email}.`}
           </p>
 
+          {!isSupabaseConfigured ? (
+            <div className="mt-5">
+              <StatusBanner tone="amber">
+                Supabase is not configured yet. Create a <strong>.env</strong>{" "}
+                file from <strong>.env.example</strong>, then set{" "}
+                <strong>VITE_SUPABASE_URL</strong> and{" "}
+                <strong>VITE_SUPABASE_ANON_KEY</strong>.
+              </StatusBanner>
+            </div>
+          ) : null}
+
           {status ? (
             <div className="mt-5">
               <StatusBanner tone={status.tone}>{status.message}</StatusBanner>
@@ -163,6 +180,7 @@ export default function Login() {
 
             <Button
               className="w-full"
+              disabled={!isSupabaseConfigured}
               icon={ArrowRight}
               isLoading={isLoading}
               type="submit"

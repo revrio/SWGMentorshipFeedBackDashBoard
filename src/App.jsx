@@ -8,7 +8,11 @@ import {
   useLocation,
 } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { getCurrentAppUser, supabase } from "./lib/supabase";
+import {
+  getCurrentAppUser,
+  isSupabaseConfigured,
+  supabase,
+} from "./lib/supabase";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Leaderboard from "./pages/Leaderboard";
@@ -35,6 +39,14 @@ function ProtectedRoute() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!isSupabaseConfigured) {
+      setState({
+        isLoading: false,
+        isAllowed: false,
+      });
+      return undefined;
+    }
 
     async function verifyAccess() {
       const { user, profile, error } = await getCurrentAppUser();
