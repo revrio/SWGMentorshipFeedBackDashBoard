@@ -1,173 +1,32 @@
-import React, { useEffect, useState } from "react";
-import { ArrowRight, Award, LayoutDashboard, Mail, ShieldCheck } from "lucide-react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Award, Facebook, Instagram, LayoutDashboard, Linkedin, Mail, ShieldCheck, Youtube } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import Button from "../components/Button";
 import StatusBanner from "../components/StatusBanner";
-import {
-  ensureMenteePortalUser,
-  getCurrentAppUser,
-  isSupabaseConfigured,
-  sendLoginOtp,
-  sendSignupOtp,
-  supabase,
-  verifyLoginOtp,
-} from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-export default function Login() {
-  const navigate = useNavigate();
+export default function Login({ error: propError }) {
   const location = useLocation();
-  const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
-  const [mode, setMode] = useState("signin");
-  const [step, setStep] = useState("email");
-  const [status, setStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const errorMsg = propError || location.state?.error;
 
-  useEffect(() => {
-    async function finishPendingSignup() {
-      const pendingEmail = window.localStorage.getItem("swg_pending_signup_email");
-
-      if (!pendingEmail || !isSupabaseConfigured) return;
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      setMode("signup");
-      setEmail(pendingEmail);
-      setIsLoading(true);
-
-      const { profile, error } = await ensureMenteePortalUser(pendingEmail);
-
-      setIsLoading(false);
-
-      if (error || !profile) {
-        setStatus({
-          tone: "red",
-          message:
-            "Your Supabase account was created, but the portal user row could not be created. Check the insert RLS policy on public.users.",
-        });
-        return;
-      }
-
-      window.localStorage.removeItem("swg_pending_signup_email");
-      setIsAuthenticated(true);
-      navigate("/mentorship/dashboard", { replace: true });
-    }
-
-    finishPendingSignup();
-  }, [navigate]);
-
-  async function handleSendOtp(event) {
-    event.preventDefault();
+  async function handleGoogleLogin() {
     setIsLoading(true);
-    setStatus(null);
-
-    const normalizedEmail = email.trim().toLowerCase();
-    let error = null;
-
-    if (mode === "signin") {
-      const { data: allowedUser, error: roleError } = await supabase
-        .from("users")
-        .select("id, role")
-        .eq("email", normalizedEmail)
-        .in("role", ["mentee", "admin"])
-        .maybeSingle();
-
-      if (roleError || !allowedUser) {
-        setIsLoading(false);
-        setStatus({
-          tone: "red",
-          message:
-            "This email is not enabled for the SWG mentorship portal. Use Create account for testing or ask an admin to add you.",
-        });
-        return;
-      }
-
-      ({ error } = await sendLoginOtp(normalizedEmail));
-    } else {
-      ({ error } = await sendSignupOtp(normalizedEmail));
-      window.localStorage.setItem("swg_pending_signup_email", normalizedEmail);
-    }
-
-    setIsLoading(false);
-
-    if (error) {
-      setStatus({ tone: "red", message: error.message });
-      return;
-    }
-
-    setEmail(normalizedEmail);
-    setStep("token");
-    setStatus({
-      tone: "green",
-      message:
-        mode === "signin"
-          ? "A one-time password has been sent to your email."
-          : "Check your email for a sign-in link or code to finish account creation.",
+    
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/mentorship/dashboard`,
+      },
     });
-  }
-
-  async function handleVerifyOtp(event) {
-    event.preventDefault();
-    setIsLoading(true);
-    setStatus(null);
-
-    const { error } = await verifyLoginOtp(email, token.trim());
-
-    if (error) {
-      setIsLoading(false);
-      setStatus({ tone: "red", message: error.message });
-      return;
-    }
-
-    const { profile, error: profileError } =
-      mode === "signup"
-        ? await ensureMenteePortalUser(email)
-        : await getCurrentAppUser();
-    setIsLoading(false);
-
-    if (profileError || !profile) {
-      setStatus({
-        tone: "red",
-        message:
-          mode === "signup"
-            ? "Your Supabase account was created, but the portal user row could not be created. Check the insert RLS policy on public.users."
-            : "Your account is authenticated but not authorized here.",
-      });
-      return;
-    }
-
-    setIsAuthenticated(true);
-    window.localStorage.removeItem("swg_pending_signup_email");
-    navigate(location.state?.from ?? "/mentorship/dashboard", { replace: true });
-  }
-
-  function switchMode(nextMode) {
-    setMode(nextMode);
-    setStep("email");
-    setToken("");
-    setStatus(null);
-  }
-
-  if (isAuthenticated) {
-    return <Navigate replace to="/mentorship/dashboard" />;
   }
 
   return (
     <main className="min-h-screen bg-swg-mist text-swg-ink">
       <section className="grid min-h-screen w-full bg-swg-mist lg:grid-cols-[270px_1fr]">
         <aside className="hidden border-r border-swg-line bg-white/95 p-7 lg:flex lg:flex-col">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-swg-aqua text-lg font-black text-swg-blue">
-              S
-            </div>
-            <div className="text-3xl font-black tracking-normal text-swg-navy">
-              SWG
-            </div>
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-auto" fill="none" viewBox="0 0 330 91"><path fill="#00293A" fillRule="evenodd" d="M61.075 0h2.074l.892.815h1.491v2.728L63.15 5.855c.395.588.947 1.764 0 1.764h-2.074l-1.346-1.764-.891-1.097V2.58l.891-.948L61.075 0zm-11.93 4.758h-2.221L45.58 5.855 43.796 8.85l1.783.682v2.046h3.566c.947 0 1.594-1.819 1.8-2.728V5.855h-1.8V4.758zm-9.823 9.399l-4.473-.949-1.783 3.128 1.783 2.179 2.982-1.364 1.491-2.994zM14.15 28.328c-3.099-.652-10.725.272-14.15.816L11.022 25.6c3.625.094 11.917.418 16.08.963 4.162.546 5.018.228 4.927 0h1.037c2.231-1.862 7.352-6.16 9.985-8.45 2.54-2.207 5.504-3.365 8.64-4.589.927-.362 1.869-.73 2.82-1.132 3.102-1.314 7.536-2.11 11.814-2.878 1.465-.263 2.912-.522 4.28-.798 4.293-.866 10.423-2.456 12.952-3.143-10.623 4.18-32.613 12.95-35.595 14.587-2.835 1.555-5.576 4.833-7.518 7.156-.612.732-1.144 1.369-1.575 1.827-1.44 1.53-3.182 5.084-3.874 6.67-1.686-.86-5.861-2.988-9.077-4.625-2.866-1.458-5.657-1.876-8.427-2.292-1.116-.167-2.228-.334-3.34-.569zm75.177-10.613h-6.938l-2.058.533-18.964 10.644h-1.378c0-.48-.117-1.634-.584-2.417-.242-.406-.384-.8-.523-1.185-.194-.542-.383-1.067-.838-1.587-.623-.711-2.345-.652-3.128-.533h-5.09v.533l-1.556 1.972h-.989v.8l.989.712v3.676c-.33.06-.989.32-.989.89 0 .569-.843 2.856-1.264 3.928l-1.265 3.039-3.241 3.498-1.167 2.772v11.074l7.537 20.13 5.56 5.99c1.56 1.072 4.901 3.377 5.77 4.017 1.086.8 4.392 2.15 7.035 2.594 2.113.356 20.05 1.581 28.754 2.15-.821-.243-2.736-.87-3.825-1.438-1.09-.57-1.816-1.424-2.043-1.78l-.988-.459-1.265.46H83.07c-.443 0-1.092-.444-1.899-.995-.963-.659-2.15-1.471-3.482-1.866-1.958-.581-8.445-.608-11.443-.549-.52-.919-2.027-3.151-3.907-4.729-1.88-1.577-5.214-4.65-6.645-5.989-.13-1.818-.467-5.813-.779-7.248-.31-1.435-1.566-3.514-2.155-4.373l-3.712-5.01v-4.656c.448-1.037 1.426-3.347 1.75-4.284l.09-.258c.412-1.197 1.058-3.071 1.872-4.574.7-1.293 8.504-8.761 12.318-12.334l3.42-1.971c.81-.539 2.668-1.776 3.615-2.417.947-.64 5.16-4.556 7.148-6.433l3.031-.445.681-.637 3.128-.712 3.226-.534zM2.354 34.998l3.601-.928 1.166.041 11.785 3.764.715-.184c-.087-.284-.237-.983-.137-1.508.051-.273.053-.526.055-.772.002-.347.005-.683.146-1.051.194-.505 1.098-.7 1.527-.734l2.642-.681.097.316 1.167.959.514-.132.145.473-.383.554.67 2.175c.182-.008.572.058.675.395.104.337.959 1.578 1.373 2.156l1.21 1.63 2.32 1.636 1.112 1.485 2.018 6.554-.243 12.923-1.795 4.288c-.615.843-1.93 2.654-2.263 3.149-.418.619-1.889 1.86-3.18 2.476-1.032.493-10.12 3.617-14.535 5.117.383-.253 1.262-.88 1.724-1.362a3.11 3.11 0 00.736-1.326l.43-.405.74.103 1.977-.509c.23-.06.486-.409.804-.843.38-.518.849-1.158 1.468-1.57.91-.606 4.273-1.489 5.84-1.855.102-.613.478-2.136 1.167-3.32.688-1.186 1.859-3.45 2.358-4.434-.264-1.094-.817-3.504-.918-4.394-.1-.891.174-2.29.323-2.877l1.013-3.462-.848-2.755c-.422-.554-1.35-1.79-1.69-2.301l-.093-.141c-.432-.653-1.11-1.677-1.806-2.457-.599-.672-6.011-4.048-8.643-5.653l-2.135-.71c-.518-.21-1.708-.694-2.316-.946-.609-.253-3.51-2.007-4.884-2.852l-1.654.142-.47-.287-1.754-.002-1.771.115z" clipRule="evenodd"></path><path fill="#00293A" d="M119.261 38.358c-.201.328-.41.574-.629.738-.219.146-.492.219-.82.219-.347 0-.738-.146-1.176-.438-.419-.291-.948-.61-1.585-.957-.62-.364-1.358-.692-2.215-.984-.856-.31-1.877-.464-3.062-.464-1.093 0-2.059.136-2.898.41-.82.273-1.512.656-2.077 1.148a4.84 4.84 0 00-1.285 1.75 5.55 5.55 0 00-.41 2.16c0 1.002.264 1.84.793 2.514.528.657 1.221 1.221 2.077 1.695a18.09 18.09 0 002.98 1.258c1.112.346 2.242.72 3.39 1.12 1.167.402 2.306.857 3.417 1.368a11.362 11.362 0 012.953 1.94c.875.785 1.576 1.741 2.105 2.871.529 1.13.793 2.506.793 4.128 0 1.75-.301 3.39-.902 4.921a11.65 11.65 0 01-2.625 4.02c-1.13 1.13-2.533 2.022-4.21 2.678-1.659.656-3.554.984-5.686.984-1.258 0-2.488-.127-3.691-.382a19.433 19.433 0 01-3.417-1.012 17.975 17.975 0 01-3.035-1.64 15.305 15.305 0 01-2.542-2.133l1.859-3.061c.164-.256.373-.456.628-.602.256-.146.538-.219.848-.219.42 0 .884.2 1.394.602.51.383 1.121.81 1.832 1.285.729.455 1.604.884 2.624 1.285 1.021.382 2.242.574 3.664.574 2.314 0 4.1-.565 5.358-1.695 1.276-1.13 1.914-2.688 1.914-4.675 0-1.112-.265-2.014-.793-2.707-.529-.71-1.23-1.303-2.105-1.777-.857-.473-1.841-.874-2.953-1.203a174.168 174.168 0 01-3.39-1.038 38.348 38.348 0 01-3.39-1.313 11.456 11.456 0 01-2.98-1.968c-.856-.82-1.549-1.823-2.077-3.007-.529-1.203-.793-2.698-.793-4.484 0-1.421.273-2.797.82-4.128a10.643 10.643 0 012.433-3.526c1.075-1.04 2.397-1.868 3.964-2.488 1.568-.62 3.354-.93 5.359-.93 2.26 0 4.328.356 6.205 1.066 1.896.711 3.527 1.723 4.894 3.035l-1.558 3.062zm60.8-6.725L167.813 71h-5.768l-9.241-28.268c-.109-.31-.218-.647-.328-1.011a39.199 39.199 0 01-.273-1.176c-.091.42-.191.811-.301 1.176-.091.364-.191.701-.3 1.011L142.279 71h-5.768l-12.248-39.367h5.359c.546 0 1.002.136 1.366.41.383.255.638.61.766 1.066l7.381 25.233c.146.547.283 1.14.41 1.777.128.638.256 1.303.383 1.996.128-.693.264-1.358.41-1.996.164-.656.337-1.248.52-1.777l8.447-25.233c.128-.364.383-.702.766-1.012.382-.31.838-.464 1.367-.464h1.859c.565 0 1.02.146 1.366.437.347.273.611.62.793 1.039l8.421 25.233c.182.529.346 1.103.492 1.723.164.601.309 1.239.437 1.913.128-.674.246-1.312.355-1.913.128-.62.265-1.194.411-1.723l7.354-25.233c.109-.401.355-.747.738-1.039a2.306 2.306 0 011.394-.437h5.003zm36.866 19.984V67.2c-3.919 2.825-8.475 4.237-13.67 4.237-3.189 0-6.078-.492-8.666-1.476-2.57-1.002-4.766-2.387-6.588-4.155-1.823-1.786-3.226-3.91-4.21-6.37-.985-2.46-1.477-5.167-1.477-8.12 0-2.97.474-5.686 1.422-8.147.948-2.478 2.305-4.601 4.073-6.37 1.768-1.785 3.901-3.161 6.397-4.127 2.497-.985 5.304-1.477 8.421-1.477 1.585 0 3.052.128 4.401.383 1.367.237 2.634.574 3.8 1.012 1.167.437 2.242.965 3.226 1.585s1.887 1.312 2.707 2.078l-1.832 2.925c-.292.456-.665.738-1.121.848-.456.109-.948 0-1.476-.329-.529-.31-1.094-.637-1.695-.984a13.121 13.121 0 00-2.023-.956c-.766-.31-1.65-.556-2.652-.739-1.002-.2-2.187-.3-3.554-.3-2.078 0-3.955.346-5.632 1.038a11.82 11.82 0 00-4.265 2.926c-1.184 1.257-2.095 2.788-2.733 4.593-.638 1.804-.957 3.818-.957 6.041 0 2.351.337 4.456 1.011 6.316.675 1.84 1.632 3.408 2.871 4.702 1.239 1.275 2.734 2.25 4.483 2.925 1.768.674 3.737 1.011 5.905 1.011 1.623 0 3.062-.173 4.32-.519a19.607 19.607 0 003.745-1.449v-7.819h-5.495c-.419 0-.747-.109-.984-.328-.237-.237-.355-.537-.355-.902v-3.636h12.603z"></path></svg>
           </div>
           <nav className="mt-10 space-y-3 text-sm font-semibold text-slate-500">
             <div className="flex min-h-12 items-center gap-3 rounded-xl bg-swg-aqua px-4 text-swg-blue">
@@ -187,22 +46,17 @@ export default function Login() {
               <Mail className="h-4 w-4" />
               SWG IIT KGP
             </div>
-            <p>swg@iitkgp.ac.in</p>
+            <p>info.swgiitkgp@gmail.com</p>
           </div>
         </aside>
 
         <div className="grid w-full items-center gap-8 px-5 py-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-10 xl:px-12">
           <div>
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-swg-aqua text-lg font-black text-swg-blue">
-                S
-              </div>
-              <div className="text-3xl font-black tracking-normal text-swg-navy">
-                SWG
-              </div>
+            <div className="mb-8 flex items-center lg:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-auto" fill="none" viewBox="0 0 330 91"><path fill="#00293A" fillRule="evenodd" d="M61.075 0h2.074l.892.815h1.491v2.728L63.15 5.855c.395.588.947 1.764 0 1.764h-2.074l-1.346-1.764-.891-1.097V2.58l.891-.948L61.075 0zm-11.93 4.758h-2.221L45.58 5.855 43.796 8.85l1.783.682v2.046h3.566c.947 0 1.594-1.819 1.8-2.728V5.855h-1.8V4.758zm-9.823 9.399l-4.473-.949-1.783 3.128 1.783 2.179 2.982-1.364 1.491-2.994zM14.15 28.328c-3.099-.652-10.725.272-14.15.816L11.022 25.6c3.625.094 11.917.418 16.08.963 4.162.546 5.018.228 4.927 0h1.037c2.231-1.862 7.352-6.16 9.985-8.45 2.54-2.207 5.504-3.365 8.64-4.589.927-.362 1.869-.73 2.82-1.132 3.102-1.314 7.536-2.11 11.814-2.878 1.465-.263 2.912-.522 4.28-.798 4.293-.866 10.423-2.456 12.952-3.143-10.623 4.18-32.613 12.95-35.595 14.587-2.835 1.555-5.576 4.833-7.518 7.156-.612.732-1.144 1.369-1.575 1.827-1.44 1.53-3.182 5.084-3.874 6.67-1.686-.86-5.861-2.988-9.077-4.625-2.866-1.458-5.657-1.876-8.427-2.292-1.116-.167-2.228-.334-3.34-.569zm75.177-10.613h-6.938l-2.058.533-18.964 10.644h-1.378c0-.48-.117-1.634-.584-2.417-.242-.406-.384-.8-.523-1.185-.194-.542-.383-1.067-.838-1.587-.623-.711-2.345-.652-3.128-.533h-5.09v.533l-1.556 1.972h-.989v.8l.989.712v3.676c-.33.06-.989.32-.989.89 0 .569-.843 2.856-1.264 3.928l-1.265 3.039-3.241 3.498-1.167 2.772v11.074l7.537 20.13 5.56 5.99c1.56 1.072 4.901 3.377 5.77 4.017 1.086.8 4.392 2.15 7.035 2.594 2.113.356 20.05 1.581 28.754 2.15-.821-.243-2.736-.87-3.825-1.438-1.09-.57-1.816-1.424-2.043-1.78l-.988-.459-1.265.46H83.07c-.443 0-1.092-.444-1.899-.995-.963-.659-2.15-1.471-3.482-1.866-1.958-.581-8.445-.608-11.443-.549-.52-.919-2.027-3.151-3.907-4.729-1.88-1.577-5.214-4.65-6.645-5.989-.13-1.818-.467-5.813-.779-7.248-.31-1.435-1.566-3.514-2.155-4.373l-3.712-5.01v-4.656c.448-1.037 1.426-3.347 1.75-4.284l.09-.258c.412-1.197 1.058-3.071 1.872-4.574.7-1.293 8.504-8.761 12.318-12.334l3.42-1.971c.81-.539 2.668-1.776 3.615-2.417.947-.64 5.16-4.556 7.148-6.433l3.031-.445.681-.637 3.128-.712 3.226-.534zM2.354 34.998l3.601-.928 1.166.041 11.785 3.764.715-.184c-.087-.284-.237-.983-.137-1.508.051-.273.053-.526.055-.772.002-.347.005-.683.146-1.051.194-.505 1.098-.7 1.527-.734l2.642-.681.097.316 1.167.959.514-.132.145.473-.383.554.67 2.175c.182-.008.572.058.675.395.104.337.959 1.578 1.373 2.156l1.21 1.63 2.32 1.636 1.112 1.485 2.018 6.554-.243 12.923-1.795 4.288c-.615.843-1.93 2.654-2.263 3.149-.418.619-1.889 1.86-3.18 2.476-1.032.493-10.12 3.617-14.535 5.117.383-.253 1.262-.88 1.724-1.362a3.11 3.11 0 00.736-1.326l.43-.405.74.103 1.977-.509c.23-.06.486-.409.804-.843.38-.518.849-1.158 1.468-1.57.91-.606 4.273-1.489 5.84-1.855.102-.613.478-2.136 1.167-3.32.688-1.186 1.859-3.45 2.358-4.434-.264-1.094-.817-3.504-.918-4.394-.1-.891.174-2.29.323-2.877l1.013-3.462-.848-2.755c-.422-.554-1.35-1.79-1.69-2.301l-.093-.141c-.432-.653-1.11-1.677-1.806-2.457-.599-.672-6.011-4.048-8.643-5.653l-2.135-.71c-.518-.21-1.708-.694-2.316-.946-.609-.253-3.51-2.007-4.884-2.852l-1.654.142-.47-.287-1.754-.002-1.771.115z" clipRule="evenodd"></path><path fill="#00293A" d="M119.261 38.358c-.201.328-.41.574-.629.738-.219.146-.492.219-.82.219-.347 0-.738-.146-1.176-.438-.419-.291-.948-.61-1.585-.957-.62-.364-1.358-.692-2.215-.984-.856-.31-1.877-.464-3.062-.464-1.093 0-2.059.136-2.898.41-.82.273-1.512.656-2.077 1.148a4.84 4.84 0 00-1.285 1.75 5.55 5.55 0 00-.41 2.16c0 1.002.264 1.84.793 2.514.528.657 1.221 1.221 2.077 1.695a18.09 18.09 0 002.98 1.258c1.112.346 2.242.72 3.39 1.12 1.167.402 2.306.857 3.417 1.368a11.362 11.362 0 012.953 1.94c.875.785 1.576 1.741 2.105 2.871.529 1.13.793 2.506.793 4.128 0 1.75-.301 3.39-.902 4.921a11.65 11.65 0 01-2.625 4.02c-1.13 1.13-2.533 2.022-4.21 2.678-1.659.656-3.554.984-5.686.984-1.258 0-2.488-.127-3.691-.382a19.433 19.433 0 01-3.417-1.012 17.975 17.975 0 01-3.035-1.64 15.305 15.305 0 01-2.542-2.133l1.859-3.061c.164-.256.373-.456.628-.602.256-.146.538-.219.848-.219.42 0 .884.2 1.394.602.51.383 1.121.81 1.832 1.285.729.455 1.604.884 2.624 1.285 1.021.382 2.242.574 3.664.574 2.314 0 4.1-.565 5.358-1.695 1.276-1.13 1.914-2.688 1.914-4.675 0-1.112-.265-2.014-.793-2.707-.529-.71-1.23-1.303-2.105-1.777-.857-.473-1.841-.874-2.953-1.203a174.168 174.168 0 01-3.39-1.038 38.348 38.348 0 01-3.39-1.313 11.456 11.456 0 01-2.98-1.968c-.856-.82-1.549-1.823-2.077-3.007-.529-1.203-.793-2.698-.793-4.484 0-1.421.273-2.797.82-4.128a10.643 10.643 0 012.433-3.526c1.075-1.04 2.397-1.868 3.964-2.488 1.568-.62 3.354-.93 5.359-.93 2.26 0 4.328.356 6.205 1.066 1.896.711 3.527 1.723 4.894 3.035l-1.558 3.062zm60.8-6.725L167.813 71h-5.768l-9.241-28.268c-.109-.31-.218-.647-.328-1.011a39.199 39.199 0 01-.273-1.176c-.091.42-.191.811-.301 1.176-.091.364-.191.701-.3 1.011L142.279 71h-5.768l-12.248-39.367h5.359c.546 0 1.002.136 1.366.41.383.255.638.61.766 1.066l7.381 25.233c.146.547.283 1.14.41 1.777.128.638.256 1.303.383 1.996.128-.693.264-1.358.41-1.996.164-.656.337-1.248.52-1.777l8.447-25.233c.128-.364.383-.702.766-1.012.382-.31.838-.464 1.367-.464h1.859c.565 0 1.02.146 1.366.437.347.273.611.62.793 1.039l8.421 25.233c.182.529.346 1.103.492 1.723.164.601.309 1.239.437 1.913.128-.674.246-1.312.355-1.913.128-.62.265-1.194.411-1.723l7.354-25.233c.109-.401.355-.747.738-1.039a2.306 2.306 0 011.394-.437h5.003zm36.866 19.984V67.2c-3.919 2.825-8.475 4.237-13.67 4.237-3.189 0-6.078-.492-8.666-1.476-2.57-1.002-4.766-2.387-6.588-4.155-1.823-1.786-3.226-3.91-4.21-6.37-.985-2.46-1.477-5.167-1.477-8.12 0-2.97.474-5.686 1.422-8.147.948-2.478 2.305-4.601 4.073-6.37 1.768-1.785 3.901-3.161 6.397-4.127 2.497-.985 5.304-1.477 8.421-1.477 1.585 0 3.052.128 4.401.383 1.367.237 2.634.574 3.8 1.012 1.167.437 2.242.965 3.226 1.585s1.887 1.312 2.707 2.078l-1.832 2.925c-.292.456-.665.738-1.121.848-.456.109-.948 0-1.476-.329-.529-.31-1.094-.637-1.695-.984a13.121 13.121 0 00-2.023-.956c-.766-.31-1.65-.556-2.652-.739-1.002-.2-2.187-.3-3.554-.3-2.078 0-3.955.346-5.632 1.038a11.82 11.82 0 00-4.265 2.926c-1.184 1.257-2.095 2.788-2.733 4.593-.638 1.804-.957 3.818-.957 6.041 0 2.351.337 4.456 1.011 6.316.675 1.84 1.632 3.408 2.871 4.702 1.239 1.275 2.734 2.25 4.483 2.925 1.768.674 3.737 1.011 5.905 1.011 1.623 0 3.062-.173 4.32-.519a19.607 19.607 0 003.745-1.449v-7.819h-5.495c-.419 0-.747-.109-.984-.328-.237-.237-.355-.537-.355-.902v-3.636h12.603z"></path></svg>
             </div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-swg-teal">
-              Students' Welfare Group, IIT Kharagpur
+              Student Welfare Group, IIT Kharagpur
             </p>
             <h1 className="text-4xl font-bold tracking-normal text-swg-navy md:text-5xl">
               Mentorship Dashboard
@@ -211,57 +65,15 @@ export default function Login() {
               Submit cycle feedback and review frozen mentor rankings through a
               focused portal built for the SWG mentorship workflow.
             </p>
-            <div className="mt-8 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-              <div className="rounded-2xl border border-swg-line bg-white p-4 shadow-soft">
-                <ShieldCheck className="mb-3 h-5 w-5 text-swg-teal" />
-                OTP access for mentees and admins only.
-              </div>
-              <div className="rounded-2xl border border-swg-line bg-white p-4 shadow-soft">
-                <Mail className="mb-3 h-5 w-5 text-swg-teal" />
-                Feedback windows follow active database cycles.
-              </div>
-            </div>
+
           </div>
 
         <div className="rounded-2xl border border-swg-line bg-white p-6 shadow-corporate">
-          <div className="mb-5 grid grid-cols-2 rounded-xl border border-swg-line bg-slate-50 p-1">
-            <button
-              className={`swg-focus min-h-10 rounded-lg text-sm font-bold ${
-                mode === "signin"
-                  ? "bg-white text-swg-blue shadow-sm"
-                  : "text-slate-500"
-              }`}
-              onClick={() => switchMode("signin")}
-              type="button"
-            >
-              Sign in
-            </button>
-            <button
-              className={`swg-focus min-h-10 rounded-lg text-sm font-bold ${
-                mode === "signup"
-                  ? "bg-white text-swg-blue shadow-sm"
-                  : "text-slate-500"
-              }`}
-              onClick={() => switchMode("signup")}
-              type="button"
-            >
-              Sign up
-            </button>
-          </div>
-
           <h2 className="text-xl font-bold text-swg-navy">
-            {step === "email"
-              ? mode === "signin"
-                ? "Sign in with email"
-                : "Create testing account"
-              : "Check your email"}
+            Sign in
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {step === "email"
-              ? mode === "signin"
-                ? "Use the email registered in the mentorship users table."
-                : "Use an email you can access. This creates a mentee portal user for local testing."
-              : `We sent login instructions to ${email}.`}
+            Sign in using your Google account to access the mentorship dashboard.
           </p>
 
           {!isSupabaseConfigured ? (
@@ -275,72 +87,30 @@ export default function Login() {
             </div>
           ) : null}
 
-          {status ? (
+          {errorMsg ? (
             <div className="mt-5">
-              <StatusBanner tone={status.tone}>{status.message}</StatusBanner>
+              <StatusBanner tone="red">{errorMsg}</StatusBanner>
             </div>
           ) : null}
 
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={step === "email" ? handleSendOtp : handleVerifyOtp}
-          >
-            <label className="block">
-              <span className="text-sm font-semibold text-swg-navy">Email</span>
-              <input
-                className="swg-focus mt-2 min-h-11 w-full rounded-lg border border-swg-line px-3 text-sm"
-                disabled={step === "token"}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="name@kgpian.iitkgp.ac.in"
-                required
-                type="email"
-                value={email}
-              />
-            </label>
-
-            {step === "token" ? (
-              <label className="block">
-                <span className="text-sm font-semibold text-swg-navy">
-                  One-time password
-                </span>
-                <input
-                  className="swg-focus mt-2 min-h-11 w-full rounded-md border border-swg-line px-3 text-sm"
-                  inputMode="numeric"
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="6 digit code"
-                  required
-                  value={token}
-                />
-              </label>
-            ) : null}
-
+          <div className="mt-6 space-y-4">
             <Button
-              className="w-full"
+              className="w-full flex items-center justify-center gap-2"
               disabled={!isSupabaseConfigured}
-              icon={ArrowRight}
               isLoading={isLoading}
-              type="submit"
+              onClick={handleGoogleLogin}
+              type="button"
+              variant="secondary"
             >
-              {step === "email"
-                ? mode === "signin"
-                  ? "Send OTP"
-                  : "Create account"
-                : "Verify and continue"}
+              <svg className="h-5 w-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Sign in with Google
             </Button>
-            {step === "token" ? (
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setStep("email");
-                  setToken("");
-                  setStatus(null);
-                }}
-                variant="secondary"
-              >
-                Change email
-              </Button>
-            ) : null}
-          </form>
+          </div>
         </div>
         </div>
       </section>

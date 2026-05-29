@@ -219,9 +219,7 @@ export default function Dashboard() {
           <section className="space-y-5">
             {!state.cycle ? (
               <StatusBanner icon={Clock} tone="amber">
-                No feedback cycle is active right now. The form opens only
-                between the configured <strong>opens_at</strong> and{" "}
-                <strong>closes_at</strong> window.
+                No feedback cycle is active right now.
               </StatusBanner>
             ) : null}
 

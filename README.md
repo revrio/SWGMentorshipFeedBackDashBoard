@@ -25,11 +25,11 @@ This project is built to be handed off and merged into a larger React codebase l
 
 ## Authentication Behavior
 
-- Existing users sign in with email OTP/magic link.
-- The sign-in flow checks `public.users` first, so only `mentee` and `admin` roles can enter the portal.
-- The login page also includes a visible Sign up mode for local testing.
-- Test sign-up creates a Supabase Auth user and then attempts to create a matching `public.users` row with role `mentee`.
-- A newly signed-up user still needs a linked `public.mentees` row before the feedback dashboard can show assigned mentor/cycle data.
+- The application uses Google OAuth via Supabase for authentication.
+- After a successful Google sign-in, the application extracts the authenticated user's email.
+- The sign-in flow checks the `public.users` table explicitly by email to verify if the user exists and has a `mentee` or `admin` role.
+- If the email is not registered with the required roles, the user is immediately signed out from Supabase, redirected back to the login page, and shown an "Unauthorized" error banner.
+- A valid user still needs a linked `public.mentees` row before the feedback dashboard can show assigned mentor/cycle data.
 - The Leaderboard item on the login sidebar links to `/mentorship/leaderboard`.
 
 ## Current UI Direction
@@ -197,8 +197,7 @@ Note: `npm audit` reported 2 moderate findings from installed packages. No force
 
 Before deploying, configure Row Level Security policies so the frontend can safely:
 
-- Read allowed `users` rows for login eligibility.
-- Insert a `users` row for local test sign-up, if that testing path remains enabled.
+- Read allowed `users` rows for login eligibility (by email).
 - Read the authenticated mentee profile.
 - Read active `feedback_cycles`.
 - Read/write permitted `feedbacks`.

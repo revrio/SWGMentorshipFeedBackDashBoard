@@ -35,6 +35,7 @@ function ProtectedRoute() {
   const [state, setState] = useState({
     isLoading: true,
     isAllowed: false,
+    error: null,
   });
 
   useEffect(() => {
@@ -56,6 +57,7 @@ function ProtectedRoute() {
       setState({
         isLoading: false,
         isAllowed: Boolean(user && profile && !error),
+        error: error?.message || null,
       });
     }
 
@@ -82,7 +84,7 @@ function ProtectedRoute() {
       <Navigate
         replace
         to="/mentorship"
-        state={{ from: location.pathname }}
+        state={{ from: location.pathname, error: state.error }}
       />
     );
   }
@@ -94,6 +96,7 @@ function MentorshipEntry() {
   const [state, setState] = useState({
     isLoading: true,
     isAllowed: false,
+    error: null,
   });
 
   useEffect(() => {
@@ -101,33 +104,18 @@ function MentorshipEntry() {
 
     async function checkExistingSession() {
       if (!isSupabaseConfigured) {
-        setState({ isLoading: false, isAllowed: false });
+        setState({ isLoading: false, isAllowed: false, error: null });
         return;
       }
 
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        if (!isMounted) return;
-        setState({ isLoading: false, isAllowed: false });
-        return;
-      }
-
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("id, email, role")
-        .eq("id", user.id)
-        .in("role", ["mentee", "admin"])
-        .maybeSingle();
+      const { user, profile, error } = await getCurrentAppUser();
 
       if (!isMounted) return;
 
       setState({
         isLoading: false,
         isAllowed: Boolean(user && profile && !error),
+        error: error?.message || null,
       });
     }
 
@@ -146,7 +134,7 @@ function MentorshipEntry() {
     return <Navigate replace to="/mentorship/dashboard" />;
   }
 
-  return <Login />;
+  return <Login error={state.error} />;
 }
 
 export default function App() {

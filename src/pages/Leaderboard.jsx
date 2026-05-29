@@ -180,11 +180,11 @@ export default function Leaderboard() {
       </div>
 
       <div className="mb-5">
-        <StatusBanner icon={Trophy} tone="blue">
+        {/* <StatusBanner icon={Trophy} tone="blue">
           Rankings are read from immutable{" "}
           <strong>leaderboard_snapshots</strong>. This screen displays stored
           final scores, raw rating averages, and engagement percentages.
-        </StatusBanner>
+        </StatusBanner> */}
       </div>
 
       {error ? (

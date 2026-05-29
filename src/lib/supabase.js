@@ -17,60 +17,6 @@ export const supabase = createClient(
   },
 );
 
-export async function sendLoginOtp(email) {
-  if (!isSupabaseConfigured) {
-    return {
-      data: null,
-      error: new Error(
-        "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-      ),
-    };
-  }
-
-  return supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${window.location.origin}/mentorship/dashboard`,
-      shouldCreateUser: false,
-    },
-  });
-}
-
-export async function sendSignupOtp(email) {
-  if (!isSupabaseConfigured) {
-    return {
-      data: null,
-      error: new Error(
-        "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-      ),
-    };
-  }
-
-  return supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${window.location.origin}/mentorship`,
-      shouldCreateUser: true,
-    },
-  });
-}
-
-export async function verifyLoginOtp(email, token) {
-  if (!isSupabaseConfigured) {
-    return {
-      data: null,
-      error: new Error(
-        "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-      ),
-    };
-  }
-
-  return supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "email",
-  });
-}
 
 export async function getCurrentSession() {
   if (!isSupabaseConfigured) {
@@ -106,14 +52,14 @@ export async function getCurrentAppUser() {
     return {
       user: null,
       profile: null,
-      error: authError ?? new Error("No active Supabase session."),
+      error: null,
     };
   }
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("id, email, role")
-    .eq("id", user.id)
+    .eq("email", user.email)
     .in("role", ["mentee", "admin"])
     .maybeSingle();
 
@@ -122,61 +68,13 @@ export async function getCurrentAppUser() {
     return {
       user: null,
       profile: null,
-      error: profileError ?? new Error("User is not allowed in mentorship."),
+      error: new Error("Unauthorized: This email is not registered as an active mentee."),
     };
   }
 
   return { user, profile, error: null };
 }
 
-export async function ensureMenteePortalUser(email) {
-  if (!isSupabaseConfigured) {
-    return {
-      profile: null,
-      error: new Error(
-        "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
-      ),
-    };
-  }
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return {
-      profile: null,
-      error: authError ?? new Error("No active Supabase session."),
-    };
-  }
-
-  const { data: existingProfile, error: existingError } = await supabase
-    .from("users")
-    .select("id, email, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (existingError) {
-    return { profile: null, error: existingError };
-  }
-
-  if (existingProfile) {
-    return { profile: existingProfile, error: null };
-  }
-
-  const { data: profile, error } = await supabase
-    .from("users")
-    .insert({
-      id: user.id,
-      email: email.trim().toLowerCase(),
-      role: "mentee",
-    })
-    .select("id, email, role")
-    .single();
-
-  return { profile, error };
-}
 
 export async function signOut() {
   if (!isSupabaseConfigured) {
